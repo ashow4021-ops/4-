@@ -6,9 +6,11 @@
 <style>
 body { text-align:center; font-family:sans-serif; }
 canvas { border:1px solid #333; margin-top:10px; }
-input { font-size:16px; margin:5px; }
+input, select { font-size:16px; margin:5px; }
 </style>
+
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@800&display=swap" rel="stylesheet">
+
 </head>
 <body>
 
@@ -16,10 +18,20 @@ input { font-size:16px; margin:5px; }
 
 <input id="text" maxlength="4" placeholder="4文字まで入力"><br>
 
-文字サイズ: <input type="range" id="size" min="80" max="180" value="120"><br>
+順番パターン:
+<select id="order" onchange="draw()">
+  <option value="normal">左上→右上→左下→右下</option>
+  <option value="reverse">右上→右下→左上→左下</option>
+  <option value="vertical">左上→左下→右上→右下</option>
+</select><br>
 
-文字色: <input type="color" id="fillColor" value="#ffffff">
-枠色: <input type="color" id="strokeColor" value="#000000"><br>
+文字サイズ:
+<input type="range" id="size" min="80" max="180" value="120" onchange="draw()"><br>
+
+文字色:
+<input type="color" id="fillColor" value="#ffffff" onchange="draw()">
+枠色:
+<input type="color" id="strokeColor" value="#000000" onchange="draw()"><br>
 
 <input type="file" id="upload"><br>
 
@@ -34,9 +46,28 @@ const ctx = canvas.getContext("2d");
 
 let userImage = null;
 
+// 四隅の基本位置
+const basePos = [
+  [90,90],    // 左上
+  [310,90],   // 右上
+  [90,310],   // 左下
+  [310,310]   // 右下
+];
+
+// 並び順の定義
+function getOrder(type){
+  switch(type){
+    case "reverse": return [1,3,0,2];   // 右上→右下→左上→左下
+    case "vertical": return [0,2,1,3];  // 左上→左下→右上→右下
+    default: return [0,1,2,3];          // 標準
+  }
+}
+
+// 画像アップロード
 document.getElementById("upload").addEventListener("change", (e) => {
   const file = e.target.files[0];
   if (!file) return;
+
   const img = new Image();
   img.onload = () => {
     userImage = img;
@@ -45,35 +76,41 @@ document.getElementById("upload").addEventListener("change", (e) => {
   img.src = URL.createObjectURL(file);
 });
 
-function draw() {
+// 描画
+function draw(){
   const text = document.getElementById("text").value;
   const fill = document.getElementById("fillColor").value;
   const stroke = document.getElementById("strokeColor").value;
   const size = document.getElementById("size").value;
+  const order = getOrder(document.getElementById("order").value);
 
   ctx.clearRect(0,0,400,400);
 
-  if (userImage) {
+  // 背景画像
+  if(userImage){
     ctx.drawImage(userImage, 0, 0, 400, 400);
   }
 
+  // フォント設定
   ctx.font = `bold ${size}px 'Shippori Mincho B1', serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
-  const pos = [[90,90],[310,90],[90,310],[310,310]];
+  // 文字描画
+  for(let i=0;i<text.length;i++){
+    const [x,y] = basePos[order[i]];
 
-  for (let i = 0; i < text.length; i++) {
-    const [x,y] = pos[i];
-    ctx.lineWidth = size/10;
+    ctx.lineWidth = size / 10;
     ctx.strokeStyle = stroke;
     ctx.strokeText(text[i], x, y);
+
     ctx.fillStyle = fill;
     ctx.fillText(text[i], x, y);
   }
 }
 
-function download() {
+// ダウンロード
+function download(){
   const a = document.createElement("a");
   a.download = "stamp.png";
   a.href = canvas.toDataURL();
@@ -83,3 +120,4 @@ function download() {
 
 </body>
 </html>
+``
